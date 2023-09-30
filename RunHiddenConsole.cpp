@@ -125,10 +125,11 @@ LPTSTR FixPathFileNameString(LPCTSTR pszPath, int &nTextLength)
 void Usage()
 {
     printf("RunHiddenConsole Usage:\n"
-           "RunHiddenConsole.exe [/l] [/w] [/o output-file] commandline\n"
+           "RunHiddenConsole.exe [/e] [/l] [/w] [/o output-file] commandline\n"
            "For example:\n"
            "RunHiddenConsole.exe /l e:\\WNMP\\PHP\\php-cgi.exe -b 127.0.0.1:9000 -c e:\\WNMP\\php\\php.ini\n"
            "RunHiddenConsole.exe /l E:/WNMP/nginx/nginx.exe -p E:/WNMP/nginx\n"
+           "The /e is optional, which copy host progress environment to child process at process startup\n"
            "The /l is optional, which means printing the result of process startup\n"
            "The /w is optional, which means waiting for termination of the process\n"
            "The /o is optional, which means redirecting the output of the program to a file\n");
@@ -142,8 +143,8 @@ int _tmain(int _Argc, _TCHAR **_Argv)
     TCHAR *pszCommandLine = NULL, *pszOutputFile = NULL;
     BOOL bHasSpace;
     BOOL bReturn;
-    LPTSTR pszEvnVar;
-    BOOL bWaitExit = 0, bPrintLog = 0;
+    LPTSTR pszEvnVar = NULL;
+    BOOL bUseEnv = 0, bWaitExit = 0, bPrintLog = 0;
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
     int iCmdLinePos = 1, i;
@@ -200,6 +201,9 @@ int _tmain(int _Argc, _TCHAR **_Argv)
             {
                 switch (tolower(_Argv[i][1]))
                 {
+                case 'e':
+                    bUseEnv = 1;
+                    break;
                 case 'l':
                     bPrintLog = 1;
                     break;
@@ -308,7 +312,10 @@ int _tmain(int _Argc, _TCHAR **_Argv)
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
 
-    pszEvnVar = (LPTSTR)GetEnvironmentStrings();
+    if (bUseEnv)
+    {
+        pszEvnVar = (LPTSTR)GetEnvironmentStrings();
+    }
 
     HANDLE hFileStdOut = g_hChildStd_OUT_Wr;
 
@@ -338,21 +345,26 @@ int _tmain(int _Argc, _TCHAR **_Argv)
         _tprintf(TEXT("Starting %s"), pszCommandLine);
     }
 
+    SetLastError(0);
     bReturn = CreateProcess(NULL, pszCommandLine, NULL, NULL, TRUE, CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT, pszEvnVar, szCurrentDirectory, &si, &pi);
+    DWORD dwError = GetLastError();
 
-    FreeEnvironmentStrings(pszEvnVar);
+    if (bUseEnv)
+    {
+        FreeEnvironmentStrings(pszEvnVar);
+        pszEvnVar = NULL;
+    }
     free(pszCommandLine);
+    pszCommandLine = NULL;
 
 #define DEFAULT_CONSOLE_COLOR (FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
 
     if (!bReturn)
     {
-        DWORD dwError = GetLastError();
-
         if (bPrintLog)
         {
             SetConsoleTextAttribute(hStdOut, FOREGROUND_RED);
-            _tprintf(TEXT(" Failed!"), dwError);
+            _tprintf(TEXT(" Failed!"));
             SetConsoleTextAttribute(hStdOut, DEFAULT_CONSOLE_COLOR);
 
             _tprintf(TEXT(",Error Code:%u\n"), dwError);
