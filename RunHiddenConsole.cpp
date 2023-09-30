@@ -246,16 +246,7 @@ int _tmain(int _Argc, _TCHAR **_Argv)
         return -3;
     }
 
-    pszExePath = _Argv[iCmdLinePos];
-    if (pszExePath[1] != ':')
-    {
-        _tcscpy(szExePath, g_szMyPath);
-        _tcscpy(&szExePath[g_iMyPathLen], pszExePath);
-    }
-    else
-    {
-        _tcscpy(szExePath, pszExePath);
-    }
+    _tcscpy(szExePath, _Argv[iCmdLinePos]);
     pszExePath = szExePath;
 
     pch = pszExePath;
@@ -269,7 +260,7 @@ int _tmain(int _Argc, _TCHAR **_Argv)
         pch++;
     }
 
-    _tcscpy(szCurrentDirectory, pszExePath);
+    _tcscpy(szCurrentDirectory, g_szMyPath);
     pch = _tcsrchr(szCurrentDirectory, '\\');
     *pch = 0;
 
