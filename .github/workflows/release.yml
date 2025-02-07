@@ -1,0 +1,138 @@
+name: Windows Release
+
+# 触发条件：当有新的标签被推送到仓库时触发
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  x64-build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      # 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 安装 Ninja
+      - name: Install Ninja (Windows)
+        run: choco install -y --no-progress cmake ninja
+        shell: pwsh
+
+      # # 设置 CMake
+      # - name: Set up CMake
+      #   uses: jwlawson/actions-setup-cmake@v1
+      #   with:
+      #     cmake-version: '3.16.x'
+
+      # 设置 MSVC 工具链
+      - name: Set up x64 MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      # 配置 CMake
+      - name: Configure x64 CMake
+        run: |
+          cmake -S . -B build_x64 -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+          cmake --build build_x64 --config Release
+
+      # 设置 MSVC 工具链
+      - name: Set up x86 MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: win32
+
+      # 配置 CMake
+      - name: Configure x86 CMake
+        run: |
+          cmake -S . -B build_x86 -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+          cmake --build build_x86 --config Release
+
+      # 打包可执行文件
+      - name: Package executable
+        run: |
+          
+          function Generate-Zip {
+              param (
+                  [Parameter(Mandatory = $true)]
+                  [string]$arch
+              )
+
+              # Create the package directory
+              $packageDir = "package_$arch"
+              mkdir $packageDir
+              Copy-Item -Path .\build_$arch\RunHiddenConsole.exe -Destination .\$packageDir
+              
+              $filePath = "$packageDir\RunHiddenConsole.exe"
+              $hashesFile = "$packageDir\hashes.txt"
+
+              # Calculate the hashes
+              $md5 = Get-FileHash -Path $filePath -Algorithm MD5 | Select-Object -ExpandProperty Hash
+              $sha1 = Get-FileHash -Path $filePath -Algorithm SHA1 | Select-Object -ExpandProperty Hash
+              $sha256 = Get-FileHash -Path $filePath -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+
+              # Save the hashes to the output file
+              $hashes = @"
+          MD5: $($md5.ToLower())
+          SHA1: $($sha1.ToLower())
+          SHA256: $($sha256.ToLower())
+          "@
+
+              $hashes | Out-File -FilePath $hashesFile
+
+              # package folder
+              Compress-Archive -Path $filePath, $hashesFile -DestinationPath .\RunHiddenConsole-$arch-${{ github.ref_name }}.zip
+          }
+
+          Generate-Zip x64
+          Generate-Zip x86
+      
+      # 上传打包文件
+      - name: Upload Artifact x64
+        uses: actions/upload-artifact@v4
+        with:
+          name: RunHiddenConsole-x64-${{ github.ref_name }}.zip
+          path: RunHiddenConsole-x64-${{ github.ref_name }}.zip
+      
+      - name: Upload Artifact x86
+        uses: actions/upload-artifact@v4
+        with:
+          name: RunHiddenConsole-x86-${{ github.ref_name }}.zip
+          path: RunHiddenConsole-x86-${{ github.ref_name }}.zip
+
+      # 创建 Release
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      # 上传打包文件到 Release
+      - name: Upload Release Asset x64
+        id: upload-release-asset-x64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./RunHiddenConsole-x64-${{ github.ref_name }}.zip
+          asset_name: RunHiddenConsole-x64-${{ github.ref_name }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Asset x86
+        id: upload-release-asset-x86
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./RunHiddenConsole-x86-${{ github.ref_name }}.zip
+          asset_name: RunHiddenConsole-x86-${{ github.ref_name }}.zip
+          asset_content_type: application/zip
