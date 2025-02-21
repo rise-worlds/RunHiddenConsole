@@ -53,7 +53,22 @@ jobs:
       # 打包可执行文件
       - name: Package executable
         run: |
-          
+          function Generate-Hashes {
+              param (
+                  [Parameter(Mandatory = $true)]
+                  [string]$filePath,
+                  [Parameter(Mandatory = $true)]
+                  [string]$hashesFile
+              )
+
+              # Calculate the hashes
+              $sha256 = Get-FileHash -Path $filePath -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+
+              # Save the hashes to the output file
+              $hashes = "$($filePath) $($sha256.ToLower())"
+              $hashes | Out-File -FilePath $hashesFile
+          }
+
           function Generate-Zip {
               param (
                   [Parameter(Mandatory = $true)]
@@ -68,19 +83,7 @@ jobs:
               $filePath = "$packageDir\RunHiddenConsole.exe"
               $hashesFile = "$packageDir\hashes.txt"
 
-              # Calculate the hashes
-              $md5 = Get-FileHash -Path $filePath -Algorithm MD5 | Select-Object -ExpandProperty Hash
-              $sha1 = Get-FileHash -Path $filePath -Algorithm SHA1 | Select-Object -ExpandProperty Hash
-              $sha256 = Get-FileHash -Path $filePath -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-
-              # Save the hashes to the output file
-              $hashes = @"
-          MD5: $($md5.ToLower())
-          SHA1: $($sha1.ToLower())
-          SHA256: $($sha256.ToLower())
-          "@
-
-              $hashes | Out-File -FilePath $hashesFile
+              Generate-Hashes -filePath $filePath -hashesFile $hashesFile
 
               # package folder
               Compress-Archive -Path $filePath, $hashesFile -DestinationPath .\RunHiddenConsole-$arch-${{ github.ref_name }}.zip
@@ -88,6 +91,9 @@ jobs:
 
           Generate-Zip x64
           Generate-Zip x86
+
+          Generate-Hashes -filePath .\RunHiddenConsole-x64-${{ github.ref_name }}.zip -hashesFile .\RunHiddenConsole-x64-${{ github.ref_name }}.hashes.txt
+          Generate-Hashes -filePath .\RunHiddenConsole-x86-${{ github.ref_name }}.zip -hashesFile .\RunHiddenConsole-x86-${{ github.ref_name }}.hashes.txt
       
       # 上传打包文件
       - name: Upload Artifact x64
@@ -95,12 +101,22 @@ jobs:
         with:
           name: RunHiddenConsole-x64-${{ github.ref_name }}.zip
           path: RunHiddenConsole-x64-${{ github.ref_name }}.zip
+      - name: Upload Artifact x64 hashes
+        uses: actions/upload-artifact@v4
+        with:
+          name: RunHiddenConsole-x64-${{ github.ref_name }}.hashes.txt
+          path: RunHiddenConsole-x64-${{ github.ref_name }}.hashes.txt
       
       - name: Upload Artifact x86
         uses: actions/upload-artifact@v4
         with:
           name: RunHiddenConsole-x86-${{ github.ref_name }}.zip
           path: RunHiddenConsole-x86-${{ github.ref_name }}.zip
+      - name: Upload Artifact x86 hashes
+        uses: actions/upload-artifact@v4
+        with:
+          name: RunHiddenConsole-x86-${{ github.ref_name }}.hashes.txt
+          path: RunHiddenConsole-x86-${{ github.ref_name }}.hashes.txt
 
       # 创建 Release
       - name: Create Release
@@ -125,6 +141,16 @@ jobs:
           asset_path: ./RunHiddenConsole-x64-${{ github.ref_name }}.zip
           asset_name: RunHiddenConsole-x64-${{ github.ref_name }}.zip
           asset_content_type: application/zip
+      - name: Upload Release Asset x64 hashes
+        id: upload-release-asset-x64-hashes
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./RunHiddenConsole-x64-${{ github.ref_name }}.hashes.txt
+          asset_name: RunHiddenConsole-x64-${{ github.ref_name }}.hashes.txt
+          asset_content_type: application/txt
 
       - name: Upload Release Asset x86
         id: upload-release-asset-x86
@@ -136,3 +162,13 @@ jobs:
           asset_path: ./RunHiddenConsole-x86-${{ github.ref_name }}.zip
           asset_name: RunHiddenConsole-x86-${{ github.ref_name }}.zip
           asset_content_type: application/zip
+      - name: Upload Release Asset x86 hashes
+        id: upload-release-asset-x86-hashes
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./RunHiddenConsole-x86-${{ github.ref_name }}.hashes.txt
+          asset_name: RunHiddenConsole-x86-${{ github.ref_name }}.hashes.txt
+          asset_content_type: application/txt
