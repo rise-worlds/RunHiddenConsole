@@ -4,6 +4,7 @@
 #include <tchar.h>
 #include <io.h>
 #include <locale.h>
+#include "version.hpp"
 
 HANDLE g_hChildStd_IN_Rd = NULL;
 HANDLE g_hChildStd_IN_Wr = NULL;
@@ -124,15 +125,17 @@ LPTSTR FixPathFileNameString(LPCTSTR pszPath, int &nTextLength)
 
 void Usage()
 {
-    printf("RunHiddenConsole Usage:\n"
-           "RunHiddenConsole.exe [/e] [/l] [/w] [/o output-file] commandline\n"
-           "For example:\n"
-           "RunHiddenConsole.exe /l e:\\WNMP\\PHP\\php-cgi.exe -b 127.0.0.1:9000 -c e:\\WNMP\\php\\php.ini\n"
-           "RunHiddenConsole.exe /l E:/WNMP/nginx/nginx.exe -p E:/WNMP/nginx\n"
-           "The /e is optional, which copy host progress environment to child process at process startup\n"
-           "The /l is optional, which means printing the result of process startup\n"
-           "The /w is optional, which means waiting for termination of the process\n"
-           "The /o is optional, which means redirecting the output of the program to a file\n");
+    _tprintf(TEXT(
+           "RunHiddenConsole.exe [/v] [/e] [/l] [/w] [/o output-file] commandline\n\n"
+           "Options:\n"
+           "  /v                Print the program version\n"
+           "  /e                Copy host process environment to child process at startup\n"
+           "  /l                Print the result of process startup\n"
+           "  /w                Wait for termination of the process\n"
+           "  /o output-file    Redirect the output of the program to a file\n\n"
+           "Examples:\n"
+           "  RunHiddenConsole.exe /l e:\\WNMP\\PHP\\php-cgi.exe -b 127.0.0.1:9000 -c e:\\WNMP\\php\\php.ini\n"
+           "  RunHiddenConsole.exe /l E:/WNMP/nginx/nginx.exe -p E:/WNMP/nginx\n"));
 }
 
 int _tmain(int _Argc, _TCHAR **_Argv)
@@ -144,7 +147,7 @@ int _tmain(int _Argc, _TCHAR **_Argv)
     BOOL bHasSpace;
     BOOL bReturn;
     LPTSTR pszEvnVar = NULL;
-    BOOL bUseEnv = 0, bWaitExit = 0, bPrintLog = 0;
+    BOOL bUseEnv = 0, bWaitExit = 0, bPrintLog = 0, bPrintVersion = 0;
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
     int iCmdLinePos = 1, i;
@@ -189,7 +192,6 @@ int _tmain(int _Argc, _TCHAR **_Argv)
     if (_Argc < 2)
     {
         Usage();
-        //
         return -1;
     }
 
@@ -201,6 +203,9 @@ int _tmain(int _Argc, _TCHAR **_Argv)
             {
                 switch (tolower(_Argv[i][1]))
                 {
+                case 'v':
+                    bPrintVersion = 1;
+                    break;
                 case 'e':
                     bUseEnv = 1;
                     break;
@@ -235,6 +240,12 @@ int _tmain(int _Argc, _TCHAR **_Argv)
         {
             break;
         }
+    }
+
+    if (bPrintVersion)
+    {
+        _tprintf(TEXT("RunHiddenConsole: %s\n"), appbase::appbase_version_string);
+        return 0;
     }
 
     if (iCmdLinePos >= _Argc)
