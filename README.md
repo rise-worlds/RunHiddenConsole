@@ -1,10 +1,10 @@
 # RunHiddenConsole
-Hide console window for windows programs
+Hide console window for windows console programs
 
 What it does.
 -------------
-RunHiddenConsole is a lite program for hiding console window,it running on windows,like a linux command line end with '&',
-Let the program run behind without bloking console.
+`RunHiddenConsole` is a lightweight program for hiding the console window on Windows. 
+It functions similarly to appending '&' at the end of a Linux command line, allowing the program to run in the background without blocking the console.
 
 Usages.
 -------------
