@@ -65,7 +65,8 @@ jobs:
               $sha256 = Get-FileHash -Path $filePath -Algorithm SHA256 | Select-Object -ExpandProperty Hash
 
               # Save the hashes to the output file
-              $hashes = "$($filePath) $($sha256.ToLower())"
+              $fileName = Split-Path -Path $filePath -Leaf
+              $hashes = "$($fileName) $($sha256.ToLower())"
               $hashes | Out-File -FilePath $hashesFile
           }
 
