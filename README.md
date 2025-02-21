@@ -8,11 +8,16 @@ Let the program run behind without bloking console.
 
 Usages.
 -------------
-	
-	RunHiddenConsole.exe [/l] [/w] [/o output-file] commandline
-	For example:
-	RunHiddenConsole.exe /l e:\\WNMP\\PHP\\php-cgi.exe -b 127.0.0.1:9000 -c e:\\WNMP\\php\\php.ini
-	RunHiddenConsole.exe /l E:/WNMP/nginx/nginx.exe -p E:/WNMP/nginx
-	The /l is optional, which means printing the result of process startup
-	The /w is optional, which means waiting for termination of the process
-	The /o is optional, which means redirecting the output of the program to a file
+
+    RunHiddenConsole.exe [/v] [/e] [/l] [/w] [/o output-file] commandline
+
+    Options:
+      /v                Print the program version
+      /e                Copy host process environment to child process at startup
+      /l                Print the result of process startup
+      /w                Wait for termination of the process
+      /o output-file    Redirect the output of the program to a file
+
+    Examples:
+      RunHiddenConsole.exe /l e:\\WNMP\\PHP\\php-cgi.exe -b 127.0.0.1:9000 -c e:\\WNMP\\php\\php.ini
+      RunHiddenConsole.exe /l E:/WNMP/nginx/nginx.exe -p E:/WNMP/nginx
