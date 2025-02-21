@@ -20,12 +20,6 @@ jobs:
         run: choco install -y --no-progress cmake ninja
         shell: pwsh
 
-      # # 设置 CMake
-      # - name: Set up CMake
-      #   uses: jwlawson/actions-setup-cmake@v1
-      #   with:
-      #     cmake-version: '3.16.x'
-
       # 设置 MSVC 工具链
       - name: Set up x64 MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -66,8 +60,8 @@ jobs:
 
               # Save the hashes to the output file
               $fileName = Split-Path -Path $filePath -Leaf
-              $hashes = "$($fileName) $($sha256.ToLower())"
-              $hashes | Out-File -FilePath $hashesFile
+              $hashes = "$($sha256.ToLower()) $($fileName)"
+              $hashes | Out-File -FilePath $hashesFile -Append
           }
 
           function Generate-Zip {
@@ -93,8 +87,8 @@ jobs:
           Generate-Zip x64
           Generate-Zip x86
 
-          Generate-Hashes -filePath .\RunHiddenConsole-x64-${{ github.ref_name }}.zip -hashesFile .\RunHiddenConsole-x64-${{ github.ref_name }}.hashes.txt
-          Generate-Hashes -filePath .\RunHiddenConsole-x86-${{ github.ref_name }}.zip -hashesFile .\RunHiddenConsole-x86-${{ github.ref_name }}.hashes.txt
+          Generate-Hashes -filePath .\RunHiddenConsole-x64-${{ github.ref_name }}.zip -hashesFile .\hashes.txt
+          Generate-Hashes -filePath .\RunHiddenConsole-x86-${{ github.ref_name }}.zip -hashesFile .\hashes.txt
       
       # 上传打包文件
       - name: Upload Artifact x64
@@ -102,22 +96,18 @@ jobs:
         with:
           name: RunHiddenConsole-x64-${{ github.ref_name }}.zip
           path: RunHiddenConsole-x64-${{ github.ref_name }}.zip
-      - name: Upload Artifact x64 hashes
-        uses: actions/upload-artifact@v4
-        with:
-          name: RunHiddenConsole-x64-${{ github.ref_name }}.hashes.txt
-          path: RunHiddenConsole-x64-${{ github.ref_name }}.hashes.txt
       
       - name: Upload Artifact x86
         uses: actions/upload-artifact@v4
         with:
           name: RunHiddenConsole-x86-${{ github.ref_name }}.zip
           path: RunHiddenConsole-x86-${{ github.ref_name }}.zip
-      - name: Upload Artifact x86 hashes
+      
+      - name: Upload Artifact hashes
         uses: actions/upload-artifact@v4
         with:
-          name: RunHiddenConsole-x86-${{ github.ref_name }}.hashes.txt
-          path: RunHiddenConsole-x86-${{ github.ref_name }}.hashes.txt
+          name: hashes.txt
+          path: hashes.txt
 
       # 创建 Release
       - name: Create Release
@@ -142,16 +132,6 @@ jobs:
           asset_path: ./RunHiddenConsole-x64-${{ github.ref_name }}.zip
           asset_name: RunHiddenConsole-x64-${{ github.ref_name }}.zip
           asset_content_type: application/zip
-      - name: Upload Release Asset x64 hashes
-        id: upload-release-asset-x64-hashes
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./RunHiddenConsole-x64-${{ github.ref_name }}.hashes.txt
-          asset_name: RunHiddenConsole-x64-${{ github.ref_name }}.hashes.txt
-          asset_content_type: application/txt
 
       - name: Upload Release Asset x86
         id: upload-release-asset-x86
@@ -163,13 +143,14 @@ jobs:
           asset_path: ./RunHiddenConsole-x86-${{ github.ref_name }}.zip
           asset_name: RunHiddenConsole-x86-${{ github.ref_name }}.zip
           asset_content_type: application/zip
-      - name: Upload Release Asset x86 hashes
-        id: upload-release-asset-x86-hashes
+      
+      - name: Upload Release Asset hashes
+        id: upload-release-asset-hashes
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./RunHiddenConsole-x86-${{ github.ref_name }}.hashes.txt
-          asset_name: RunHiddenConsole-x86-${{ github.ref_name }}.hashes.txt
+          asset_path: ./hashes.txt
+          asset_name: hashes.txt
           asset_content_type: application/txt
